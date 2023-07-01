@@ -5,6 +5,7 @@ import cv2 as cv
 from pathlib import Path
 from matplotlib import pyplot as plt
 import numpy as np
+from copy import deepcopy
 
 DOT_SIZE = 4
 
@@ -139,7 +140,30 @@ def width_map(map_thin, map_bin):
             break
         width_maps.append(cv.bitwise_and(map_thin, wm) // 255)
         r += 1
-    return sum(width_maps) * (255 // r)
+    return sum(width_maps)
+
+def flood(width_map, start, end):
+    wm = deepcopy(width_map).astype(np.int64)
+    wm = np.abs(wm - np.max(wm) - 1)
+    wm = wm % np.max(wm)
+    current_paths = [[start]]
+    while not any([path[-1] == end for path in current_paths]):
+        current_paths_cpy = deepcopy(current_paths)
+        for i, path in enumerate(current_paths_cpy):
+            current_coord = path[-1]
+            if wm[current_coord[0]][current_coord[1]]:
+                wm[current_coord[0]][current_coord[1]]-=1
+            else:
+                current_paths.pop(i)
+                for point in neighbouring_points:
+                    if point == end:
+                        return path + point
+                    new_path = path + point
+                    if not any([path[-1] == point for path in current_paths]): # Is any agent on this spot?
+                        current_paths.append(new_path)
+        map_show(wm)
+
+                
 
 
 if __name__ == "__main__":
@@ -147,15 +171,15 @@ if __name__ == "__main__":
     parser.add_argument("map_file", type=Path)
     ARGS = parser.parse_args()
     map_img = cv.imread(str(ARGS.map_file))
-    point1, point2 = coordinate_selector(ARGS.map_file, map_img.shape[:2])
+    start, finish = coordinate_selector(ARGS.map_file, map_img.shape[:2])
     binarized_map = binarize_map(ARGS.map_file)
     map_show(binarized_map)
     thinned_map = cv.ximgproc.thinning(binarized_map)
     cleaned_thinned_map = prune_artifacts(thinned_map, 1)
-    point1 = pull_point_to_road(point1, cleaned_thinned_map)
-    point2 = pull_point_to_road(point2, cleaned_thinned_map)
-    print(get_point_neighborhood_without_center(point1, cleaned_thinned_map))
-    print(get_point_neighborhood_without_center(point2, cleaned_thinned_map))
-
-    map_show(cleaned_thinned_map)
-    map_show(width_map(cleaned_thinned_map, binarized_map))
+    start, finish = pull_point_to_road(start, cleaned_thinned_map), pull_point_to_road(finish, cleaned_thinned_map)
+    # print(get_point_neighborhood_without_center(start, cleaned_thinned_map))
+    # print(get_point_neighborhood_without_center(finish, cleaned_thinned_map))
+    # map_show(cleaned_thinned_map)
+    w_map = width_map(cleaned_thinned_map, binarized_map)
+    # map_show(w_map)
+    flood(w_map, start, finish)
