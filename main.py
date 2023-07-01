@@ -61,7 +61,7 @@ def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int
 def binarize_map(map_file: Path) -> cv.Mat:
     map_img = cv.imread(str(map_file))
     map_img = cv.cvtColor(map_img, cv.COLOR_BGR2GRAY)
-    ret, map_img = cv.threshold(map_img, 170, 255, cv.ADAPTIVE_THRESH_MEAN_C)
+    ret, map_img = cv.threshold(map_img, 120, 255, cv.ADAPTIVE_THRESH_MEAN_C)
     return map_img
 
 
@@ -112,6 +112,8 @@ def prune_artifacts(input_image: cv.Mat, iterations: int) -> cv.Mat:
 def get_point_neighborhood_points_coordinates(point: tuple, image: cv.Mat) -> cv.Mat:
     x,y = point
     neighborhood = image[y-1:y+2, x-1:x+2]
+    if neighborhood.shape != (3,3):
+        return []
     result=[]
     for i in range(3):
         for j in range(3):
@@ -152,22 +154,35 @@ def flood(width_map, start, end):
     wm = deepcopy(width_map).astype(np.int64)
     wm = np.abs(wm - np.max(wm) - 1)
     wm = wm % np.max(wm)
+    wm_bckp = deepcopy(wm)
     current_paths = [[start]]
+    interval = 2000
+    it=0
     while not any([path[-1] == end for path in current_paths]):
         current_paths_cpy = deepcopy(current_paths)
         for i, path in enumerate(current_paths_cpy):
             current_coord = path[-1]
-            if wm[current_coord[0]][current_coord[1]]:
-                wm[current_coord[0]][current_coord[1]]-=1
+            if wm[current_coord[1],current_coord[0]]:
+                wm[current_coord[1],current_coord[0]]-=1
             else:
-                current_paths.pop(i)
-                for point in neighbouring_points:
+                current_paths[i] = []
+                for point in get_point_neighborhood_points_coordinates(current_coord, wm):
+                    new_path = path + [point]
                     if point == end:
-                        return path + point
-                    new_path = path + point
-                    if not any([path[-1] == point for path in current_paths]): # Is any agent on this spot?
+                        return new_path
+                    if not any([path[-1] == point for path in current_paths if path]): # Is any agent on this spot?
                         current_paths.append(new_path)
-        map_show(wm)
+        current_paths = [path for path in current_paths if path]
+        if not current_paths:
+            map_show(wm)
+            map_show(wm_bckp-wm)
+            raise Exception("No path to destination.")
+        print(it, len(current_paths))
+        if not it%interval:
+            map_show(wm)
+            map_show(wm_bckp-wm)
+        it+=1
+    
 
                 
 
@@ -180,13 +195,20 @@ if __name__ == "__main__":
     start, finish = coordinate_selector(ARGS.map_file, map_img.shape[:2])
     binarized_map = binarize_map(ARGS.map_file)
     map_show(binarized_map)
-    thinned_map = cv.ximgproc.thinning(binarized_map)
+    tc1_map = cv.morphologyEx(binarized_map, cv.MORPH_DILATE, np.ones((5,5)))
+    thinned_map = cv.ximgproc.thinning(tc1_map)
+    # tc_map = cv.morphologyEx(thinned_map, cv.MORPH_CLOSE, np.ones((3,3)))
+    # tct_map = cv.ximgproc.thinning(tc_map)
     cleaned_thinned_map = prune_artifacts(thinned_map, 1)
+    # map_show(cleaned_thinned_map)
     start, finish = pull_point_to_road(start, cleaned_thinned_map), pull_point_to_road(finish, cleaned_thinned_map)
-    w_map = width_map(cleaned_thinned_map, binarized_map)
-    flood(w_map, start, finish)
     # print(get_point_neighborhood_points_coordinates(start, cleaned_thinned_map))
     # print(get_point_neighborhood_points_coordinates(finish, cleaned_thinned_map))
+    w_map = width_map(cleaned_thinned_map, binarized_map)
+    # map_show(w_map)
+    path = flood(w_map, start, finish)
+    for point in path:
+        cv.circle(map_img, point, 1, (0,255,0), 2)
+    map_show(map_img)
 
-    map_show(cleaned_thinned_map)
-    map_show(width_map(cleaned_thinned_map, binarized_map))
+
