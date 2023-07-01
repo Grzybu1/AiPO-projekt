@@ -78,15 +78,43 @@ def prune_artifacts(input_image: cv.Mat, iterations: int) -> cv.Mat:
     input_image = remove_matching_pattern_from_img(input_image, kernel)
     return input_image
 
+def get_point_neighborhood_without_center(point: tuple, image: cv.Mat) -> cv.Mat:
+    x,y = point
+    neighborhood = image[y-1:y+2, x-1:x+2]
+    neighborhood[1,1] = 0
+    return neighborhood
+
+def pull_point_to_road(point: tuple, image: cv.Mat) -> tuple:
+    x,y = point
+    radius=0
+    neighborhood=image[x,y]
+    if neighborhood:
+        return x,y
+    
+    while not neighborhood.any():
+        radius += 1
+        neighborhood=image[y-radius : y+1+radius, x-radius : x+1+radius]
+    
+    for i in range(radius*2+1):
+        for j in range(radius*2+1):
+            if neighborhood[i,j]:
+                return (x+j-radius, y+i-radius)
+    
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('map_file', type=Path)
     ARGS = parser.parse_args()
     map_img = cv.imread(str(ARGS.map_file))
-    print(coordinate_selector(ARGS.map_file, map_img.shape[:2]))
+    point1, point2 = coordinate_selector(ARGS.map_file, map_img.shape[:2])
     binarized_map = binarize_map(ARGS.map_file)
     thinned_map=cv.ximgproc.thinning(binarized_map)
     cleaned_thinned_map = prune_artifacts(thinned_map, 1)
+    point1 = pull_point_to_road(point1, cleaned_thinned_map)
+    point2 = pull_point_to_road(point2, cleaned_thinned_map)
+    print(get_point_neighborhood_without_center(point1, cleaned_thinned_map))
+    print(get_point_neighborhood_without_center(point2, cleaned_thinned_map))
     
-    plt.imshow(cleaned_thinned_map, cmap='gray')
+    plt.imshow(cleaned_thinned_map)
     plt.show()
