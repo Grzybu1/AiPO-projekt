@@ -8,6 +8,25 @@ import numpy as np
 
 DOT_SIZE = 4
 
+
+def _segment(map_img, coords):
+    return map_img[coords[0][1] : coords[1][1], coords[0][0] : coords[1][0]]
+
+
+def _circle_kernel(r):
+    k = np.ones((r * 2 + 1, r * 2 + 1))
+    for i in np.arange(-r, r + 1):
+        for j in np.arange(-r, r + 1):
+            if i**2 + j**2 > r**2:
+                k[i + r][j + r] = 0
+    return k
+
+
+def map_show(map_im):
+    plt.imshow(map_im, cmap="gray")
+    plt.show()
+
+
 def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int, int]]:
     def callback(event, canvas, coords, root):
         canvas.create_oval(
@@ -37,11 +56,13 @@ def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int
 
     return coords
 
+
 def binarize_map(map_file: Path) -> cv.Mat:
     map_img = cv.imread(str(map_file))
     map_img = cv.cvtColor(map_img, cv.COLOR_BGR2GRAY)
     ret, map_img = cv.threshold(map_img, 170, 255, cv.ADAPTIVE_THRESH_MEAN_C)
     return map_img
+
 
 def remove_matching_pattern_from_img(input_image: cv.Mat, kernel: np.array) -> cv.Mat:
     input_image_comp = cv.bitwise_not(input_image)
@@ -55,38 +76,60 @@ def remove_matching_pattern_from_img(input_image: cv.Mat, kernel: np.array) -> c
     output_img = cv.bitwise_and(input_image, input_image, mask=hitormiss_comp)
     return output_img
 
+
 def prune_artifacts(input_image: cv.Mat, iterations: int) -> cv.Mat:
     for _ in range(iterations):
-        kernel = np.array([[0, 0, 0],
-                            [0, 1, 1],
-                            [0, 0, 0]], np.uint8)
+        kernel = np.array([
+            [0, 0, 0], 
+            [0, 1, 1], 
+            [0, 0, 0]
+        ], np.uint8)
         input_image = remove_matching_pattern_from_img(input_image, kernel)
 
-        kernel = np.array([[0, 0, 0],
-                            [0, 1, 0],
-                            [0, 1, 0]], np.uint8)
+        kernel = np.array([
+            [0, 0, 0], 
+            [0, 1, 0], 
+            [0, 1, 0]
+        ], np.uint8)
         input_image = remove_matching_pattern_from_img(input_image, kernel)
 
-        kernel = np.array([[0, 0, 0],
-                            [0, 1, 0],
-                            [0, 0, 1]], np.uint8)
+        kernel = np.array([
+            [0, 0, 0], 
+            [0, 1, 0], 
+            [0, 0, 1]
+        ], np.uint8)
         input_image = remove_matching_pattern_from_img(input_image, kernel)
 
-    kernel = np.array([[0, 0, 0],
-                        [0, 1, 0],
-                        [0, 0, 0]], np.uint8)
+    kernel = np.array([
+        [0, 0, 0], 
+        [0, 1, 0], 
+        [0, 0, 0]
+    ], np.uint8)
     input_image = remove_matching_pattern_from_img(input_image, kernel)
     return input_image
 
-if __name__ == '__main__':
+
+def width_map(map_thin, map_bin):
+    width_maps = []
+    r = 1
+    while True:
+        wm = cv.morphologyEx(map_bin, cv.MORPH_HITMISS, _circle_kernel(r))
+        if not np.any(wm):
+            break
+        width_maps.append(cv.bitwise_and(map_thin, wm) // 255)
+        r += 1
+    return sum(width_maps) * (255 // r)
+
+
+if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('map_file', type=Path)
+    parser.add_argument("map_file", type=Path)
     ARGS = parser.parse_args()
     map_img = cv.imread(str(ARGS.map_file))
     print(coordinate_selector(ARGS.map_file, map_img.shape[:2]))
     binarized_map = binarize_map(ARGS.map_file)
-    thinned_map=cv.ximgproc.thinning(binarized_map)
+    map_show(binarized_map)
+    thinned_map = cv.ximgproc.thinning(binarized_map)
     cleaned_thinned_map = prune_artifacts(thinned_map, 1)
-    
-    plt.imshow(cleaned_thinned_map, cmap='gray')
-    plt.show()
+    map_show(cleaned_thinned_map)
+    map_show(width_map(cleaned_thinned_map, binarized_map))
