@@ -1,14 +1,12 @@
 import tkinter as tk
 from functools import partial
 from argparse import ArgumentParser
-from PIL import Image
+import cv2 as cv
 from pathlib import Path
 
 DOT_SIZE = 4
-WINDOW_SIZE = (600, 600)
 
-
-def coordinate_selector(map_file: Image) -> list[tuple[int, int]]:
+def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int, int]]:
     def callback(event, canvas, coords, root):
         canvas.create_oval(
             (
@@ -25,10 +23,10 @@ def coordinate_selector(map_file: Image) -> list[tuple[int, int]]:
 
     root = tk.Tk()
     root.title("Select coordinates")
-    canvas = tk.Canvas(root, width=WINDOW_SIZE[0], height=WINDOW_SIZE[1], bg="white")
+    canvas = tk.Canvas(root, width=size[0], height=size[1], bg="white")
     canvas.pack(anchor=tk.CENTER, expand=True)
     map_pi = tk.PhotoImage(file=map_file)
-    canvas.create_image([x // 2 for x in WINDOW_SIZE], image=map_pi)
+    canvas.create_image([x // 2 for x in size], image=map_pi)
     canvas.bind(
         "<Button-1>", partial(callback, canvas=canvas, coords=coords, root=root)
     )
@@ -41,4 +39,5 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('map_file', type=Path)
     ARGS = parser.parse_args()
-    print(coordinate_selector(ARGS.map_file))
+    map_img = cv.imread(str(ARGS.map_file))
+    print(coordinate_selector(ARGS.map_file, map_img.shape[:2]))
