@@ -3,6 +3,7 @@ from functools import partial
 from argparse import ArgumentParser
 import cv2 as cv
 from pathlib import Path
+from matplotlib import pyplot as plt
 
 DOT_SIZE = 4
 
@@ -35,9 +36,17 @@ def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int
 
     return coords
 
+def binarize_map(map_file: Path) -> cv.Mat:
+    map_img = cv.imread(str(map_file))
+    map_img = cv.cvtColor(map_img, cv.COLOR_BGR2GRAY)
+    ret, map_img = cv.threshold(map_img, 170, 255, cv.ADAPTIVE_THRESH_MEAN_C)
+    plt.imshow(map_img, cmap='gray')
+    plt.show()
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('map_file', type=Path)
     ARGS = parser.parse_args()
     map_img = cv.imread(str(ARGS.map_file))
     print(coordinate_selector(ARGS.map_file, map_img.shape[:2]))
+    binarize_map(ARGS.map_file)
