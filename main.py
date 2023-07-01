@@ -109,11 +109,17 @@ def prune_artifacts(input_image: cv.Mat, iterations: int) -> cv.Mat:
     input_image = remove_matching_pattern_from_img(input_image, kernel)
     return input_image
 
-def get_point_neighborhood_without_center(point: tuple, image: cv.Mat) -> cv.Mat:
+def get_point_neighborhood_points_coordinates(point: tuple, image: cv.Mat) -> cv.Mat:
     x,y = point
     neighborhood = image[y-1:y+2, x-1:x+2]
-    neighborhood[1,1] = 0
-    return neighborhood
+    result=[]
+    for i in range(3):
+        for j in range(3):
+            if i == 1 and j == 1:
+                continue
+            if neighborhood[i,j]:
+                result.append((x+j-1, y+i-1))
+    return result
 
 def pull_point_to_road(point: tuple, image: cv.Mat) -> tuple:
     x,y = point
@@ -177,9 +183,10 @@ if __name__ == "__main__":
     thinned_map = cv.ximgproc.thinning(binarized_map)
     cleaned_thinned_map = prune_artifacts(thinned_map, 1)
     start, finish = pull_point_to_road(start, cleaned_thinned_map), pull_point_to_road(finish, cleaned_thinned_map)
-    # print(get_point_neighborhood_without_center(start, cleaned_thinned_map))
-    # print(get_point_neighborhood_without_center(finish, cleaned_thinned_map))
-    # map_show(cleaned_thinned_map)
     w_map = width_map(cleaned_thinned_map, binarized_map)
-    # map_show(w_map)
     flood(w_map, start, finish)
+    # print(get_point_neighborhood_points_coordinates(start, cleaned_thinned_map))
+    # print(get_point_neighborhood_points_coordinates(finish, cleaned_thinned_map))
+
+    map_show(cleaned_thinned_map)
+    map_show(width_map(cleaned_thinned_map, binarized_map))
