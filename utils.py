@@ -16,9 +16,10 @@ def circle_kernel(r):
     return k
 
 
-def map_show(map_img):
+def map_show(map_img, no_show: bool = False):
     if len(map_img.shape) == 2:
         plt.imshow(map_img, cmap="gray")
     else:
         plt.imshow(cv.cvtColor(map_img, cv.COLOR_BGR2RGB))
-    plt.show()
+    if not no_show:
+        plt.show()

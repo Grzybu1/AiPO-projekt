@@ -39,7 +39,7 @@ class Pathfinder:
             raise Exception("No binary map. Run binarize() first.")
         if self.thin_map is None:
             raise Exception("No thin map. Run thin() first.")
-        width_maps = []
+        width_maps = [self.thin_map//255]
         r = 1
         for r in count(1):
             wm = cv.morphologyEx(self.bin_map, cv.MORPH_HITMISS, circle_kernel(r))
@@ -93,14 +93,15 @@ class Pathfinder:
             return result
 
         def reverse_width_values(weight_map):
+            weight_map = weight_map.astype(np.int64)
             wm = np.abs(weight_map - np.max(weight_map) - 1)
-            return wm % np.max(wm)
+            return (wm % np.max(wm)).astype(np.uint8)
 
         def display_traversed(non_traversed_map, full_map):
             map_show(non_traversed_map)
             map_show(full_map - non_traversed_map)
 
-        widht_map = deepcopy(self.width_map).astype(np.int64)
+        widht_map = deepcopy(self.width_map)
         widht_map = reverse_width_values(widht_map)
         widht_map_bckp = deepcopy(widht_map)
         current_paths = [[self.start]]
