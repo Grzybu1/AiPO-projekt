@@ -40,8 +40,11 @@ Mnożenie przez współczynnik zostało wykonane w celu wyraźnego pogłębienia
 W taki sposób dostajemy mapę, gdzie każdy piksel ścieżki ma tym większą wartość im szersza jest ścieżka którą reprezentuje. 
 
 Dla celów algorytmu wartości te zostały odwrócone, aby najszersze ścieżki miały najmniejsze wartości. Zrobiono to poprzez wykonanie 2 operacji na całej mapie zgodnie ze wzorami:
+    
     r = abs(r - max(r) - 1)
+    
     r = r % max(r)
+    
     ,gdzie r to wartość w punkcie, a max(r) to największa znaleziona wartość. Warto zaznaczyć, że max(r) w drugim wzorze będzie różna od max(r) w pierwszym ze względu na pierwszą operację.
 
 ### Poszukiwanie ścieżki
