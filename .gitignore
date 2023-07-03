@@ -1,2 +1,4 @@
 maps_jpgs
 .vscode
+venv
+__pycache__
