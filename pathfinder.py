@@ -22,7 +22,7 @@ class Pathfinder:
         if self.grey_map is None:
             raise Exception("No grayscale map. Run grayscale() first.")
         _, self.bin_map = cv.threshold(
-            self.grey_map, 120, 255, cv.ADAPTIVE_THRESH_MEAN_C
+            self.grey_map, 170, 255, cv.ADAPTIVE_THRESH_MEAN_C
         )
 
     def thin(self):
@@ -46,6 +46,7 @@ class Pathfinder:
             if not np.any(wm):
                 break
             width_maps.append(cv.bitwise_and(self.thin_map, wm) // 255)
+        width_maps = [w_map * (i+1) for i, w_map in enumerate(reversed(width_maps))]
         self.width_map = sum(width_maps)
 
     def generate_layers(self):

@@ -36,11 +36,12 @@ def coordinate_selector(map_file: Path, size: tuple[int, int]) -> list[tuple[int
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("map_file", type=Path)
+    parser.add_argument("--interval", default=1000, type=int)
     ARGS = parser.parse_args()
     map_img = cv.imread(str(ARGS.map_file))
     start, finish = coordinate_selector(ARGS.map_file, map_img.shape[:2])
     pf = Pathfinder(map_img, start, finish)
     pf.generate_layers()
     pf.reallocate_coords()
-    pf.calculate_shortest_path()
+    pf.calculate_shortest_path(interval=ARGS.interval)
     pf.display_shortest_path()
