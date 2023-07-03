@@ -1,6 +1,13 @@
 # Poszukiwanie najkrótszej ścieżki
+
+<p align="center">
+<img src="resources/map2_weights-i.png" alt="drawing" width="300"/>
+<img src="resources/map3_weights-i.png" alt="drawing" width="300"/>
+</p>
+
 ## Wstęp
 Projekt miał na celu stworzenie programu który wczyta obraz mapy gdzie drogi są jaśniejsze niż tło, pozwoli wybrać dwa punkty a następnie zwróci najkrótszą ścieżkę między nimi uwzględniając przy tym szerokości dróg po jakich będzie się poruszać.
+
 ## Instrukcja obsługi
 Na początek należy zainstalować potrzebne biblioteki. Można to zrobić za pomocą następującej komendy:
 ```
